@@ -37,10 +37,10 @@ func main() {
 			fmt.Println(strings.Join(commands[1:], " "))
 		case "type":
 			cmd := commands[1]
-			if handleTypeCommand(commands[1:]) {
-				continue
-			} else if slices.Contains([]string{"exit", "echo", "type"}, cmd) {
+			if slices.Contains([]string{"exit", "echo", "type"}, cmd) {
 				fmt.Println(cmd + " is a shell builtin")
+			} else if handleTypeCommand(commands[1:]) {
+				continue
 			} else {
 				fmt.Println(cmd + ": not found")
 			}
