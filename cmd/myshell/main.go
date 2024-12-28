@@ -34,8 +34,7 @@ func main() {
 		case "echo":
 			fmt.Println(strings.Join(commands[1:], " "))
 		default:
-			fmt.Println(input[:len(input)-1] + ": command not found")
-
+			fmt.Println(commands[0] + ": command not found")
 		}
 	}
 }
