@@ -83,6 +83,6 @@ func execFile(args []string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(string(output))
+	fmt.Print(string(output))
 	return nil
 }
