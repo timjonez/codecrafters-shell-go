@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"os/exec"
 	"slices"
 	"strconv"
 	"strings"
@@ -45,21 +46,43 @@ func main() {
 				fmt.Println(cmd + ": not found")
 			}
 		default:
-			fmt.Println(commands[0] + ": command not found")
+			execFile(commands)
 		}
 	}
 }
 
-func handleTypeCommand(args []string) bool {
-	cmd := args[0]
+func findFileOnPath(name string) string {
 	dirs := strings.Split(os.Getenv("PATH"), ":")
 	for _, dir := range dirs {
-		file_path := dir + "/" + cmd
+		file_path := dir + "/" + name
 		_, err := os.Stat(file_path)
 		if err == nil {
-			fmt.Println(cmd + " is " + file_path)
-			return true
+			return file_path
 		}
 	}
+	return ""
+}
+
+func handleTypeCommand(args []string) bool {
+	cmd := args[0]
+	if file := findFileOnPath(cmd); file != "" {
+		fmt.Println(cmd + " is " + file)
+		return true
+	}
 	return false
+}
+
+func execFile(args []string) error {
+	cmd := args[0]
+	file := findFileOnPath(cmd)
+	if file == "" {
+		fmt.Println(cmd + ": command not found")
+	}
+	command := exec.Command(file, args[1:]...)
+	output, err := command.CombinedOutput()
+	if err != nil {
+		return err
+	}
+	fmt.Println(string(output))
+	return nil
 }
