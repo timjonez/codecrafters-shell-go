@@ -36,6 +36,12 @@ func main() {
 			os.Exit(code)
 		case "echo":
 			fmt.Println(strings.Join(commands[1:], " "))
+		case "pwd":
+			out, err := os.Getwd()
+			if err != nil {
+				fmt.Println("pwd: not found")
+			}
+			fmt.Println(out)
 		case "type":
 			cmd := commands[1]
 			if slices.Contains([]string{"exit", "echo", "type", "pwd"}, cmd) {
