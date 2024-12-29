@@ -118,6 +118,7 @@ func processInput(message string) []string {
 	result := []string{}
 	current := ""
 	inputState := Normal
+	escaped := false
 	for _, char := range message {
 		switch inputState {
 		case SingleQuote:
@@ -130,8 +131,16 @@ func processInput(message string) []string {
 		case DoubleQuote:
 			switch char {
 			case '"':
-				inputState = Normal
+				if escaped {
+					current = current + string(char)
+					escaped = false
+				} else {
+					inputState = Normal
+				}
+			case '\\':
+				escaped = true
 			default:
+				escaped = false
 				current = current + string(char)
 			}
 		default:
