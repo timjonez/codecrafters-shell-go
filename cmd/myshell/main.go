@@ -146,9 +146,19 @@ func processInput(message string) []string {
 		default:
 			switch char {
 			case '\'':
-				inputState = SingleQuote
+				if escaped {
+					current = current + string(char)
+					escaped = false
+				} else {
+					inputState = SingleQuote
+				}
 			case '"':
-				inputState = DoubleQuote
+				if escaped {
+					current = current + string(char)
+					escaped = false
+				} else {
+					inputState = DoubleQuote
+				}
 			case '\\':
 				escaped = true
 			case ' ':
