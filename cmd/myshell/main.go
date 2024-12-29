@@ -138,7 +138,12 @@ func processInput(message string) []string {
 					inputState = Normal
 				}
 			case '\\':
-				escaped = true
+				if escaped {
+					current = current + string(char)
+					escaped = false
+				} else {
+					escaped = true
+				}
 			default:
 				escaped = false
 				current = current + string(char)
