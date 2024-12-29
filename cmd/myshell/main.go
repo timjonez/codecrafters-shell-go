@@ -39,7 +39,6 @@ func main() {
 			os.Exit(code)
 		case "echo":
 			cmd := strings.Join(commands[1:], " ")
-			cmd = strings.ReplaceAll(cmd, "'", "")
 			fmt.Println(cmd)
 		case "pwd":
 			out, err := os.Getwd()
