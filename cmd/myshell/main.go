@@ -112,7 +112,12 @@ func processInput(message string) []string {
 	current := false
 	currentIndex := 1
 	args := strings.Fields(message)
-	singleArgs := strings.Split(message, "'")
+	singleArgs := []string{}
+	for _, arg := range strings.Split(message, "'") {
+		if arg != " " {
+			singleArgs = append(singleArgs, arg)
+		}
+	}
 	for _, arg := range args {
 		if strings.HasPrefix(arg, "'") {
 			current = true
