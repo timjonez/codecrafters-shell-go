@@ -107,28 +107,52 @@ func execFile(args []string) error {
 	return nil
 }
 
+type InputType int
+
+const (
+	Normal InputType = iota
+	SingleQuote
+	DoubleQuote
+)
+
 func processInput(message string) []string {
-	final := []string{}
-	current := false
-	currentIndex := 1
-	args := strings.Fields(message)
-	singleArgs := []string{}
-	for _, arg := range strings.Split(message, "'") {
-		if arg != " " {
-			singleArgs = append(singleArgs, arg)
+	result := []string{}
+	current := ""
+	inputState := Normal
+	for _, char := range message {
+		switch inputState {
+		case SingleQuote:
+			switch char {
+			case '\'':
+				inputState = Normal
+			default:
+				current = current + string(char)
+			}
+		case DoubleQuote:
+			switch char {
+			case '"':
+				inputState = Normal
+			default:
+				current = current + string(char)
+			}
+		default:
+			switch char {
+			case '\'':
+				inputState = SingleQuote
+			case '"':
+				inputState = DoubleQuote
+			case ' ':
+				if current != "" {
+					result = append(result, current)
+					current = ""
+				}
+			default:
+				current = current + string(char)
+			}
 		}
 	}
-	for _, arg := range args {
-		if strings.HasPrefix(arg, "'") {
-			current = true
-		} else if strings.HasSuffix(arg, "'") {
-			final = append(final, strings.ReplaceAll(singleArgs[currentIndex], "'", ""))
-			currentIndex += 1
-			current = false
-		} else if current {
-		} else {
-			final = append(final, arg)
-		}
+	if current != "" {
+		result = append(result, current)
 	}
-	return final
+	return result
 }
