@@ -149,8 +149,13 @@ func processInput(message string) []string {
 				inputState = SingleQuote
 			case '"':
 				inputState = DoubleQuote
+			case '\\':
+				escaped = true
 			case ' ':
-				if current != "" {
+				if escaped {
+					current = current + string(char)
+					escaped = false
+				} else if current != "" {
 					result = append(result, current)
 					current = ""
 				}
