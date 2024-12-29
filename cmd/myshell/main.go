@@ -25,17 +25,22 @@ func main() {
 		}
 
 		input = strings.TrimSpace(input)
-		commands := strings.Split(input, " ")
+		commands := processInput(input)
 
 		switch commands[0] {
 		case "exit":
+			if len(commands) == 1 {
+				os.Exit(SuccessCode)
+			}
 			code, err := strconv.Atoi(commands[1])
 			if err != nil {
 				os.Exit(ErrCode)
 			}
 			os.Exit(code)
 		case "echo":
-			fmt.Println(strings.Join(commands[1:], " "))
+			cmd := strings.Join(commands[1:], " ")
+			cmd = strings.ReplaceAll(cmd, "'", "")
+			fmt.Println(cmd)
 		case "pwd":
 			out, err := os.Getwd()
 			if err != nil {
@@ -100,4 +105,25 @@ func execFile(args []string) error {
 	}
 	fmt.Print(string(output))
 	return nil
+}
+
+func processInput(message string) []string {
+	final := []string{}
+	current := false
+	currentIndex := 1
+	args := strings.Split(message, " ")
+	singleArgs := strings.Split(message, "'")
+	for _, arg := range args {
+		if strings.HasPrefix(arg, "'") {
+			current = true
+		} else if strings.HasSuffix(arg, "'") {
+			final = append(final, strings.ReplaceAll(singleArgs[currentIndex], "'", ""))
+			currentIndex += 1
+			current = false
+		} else if current {
+		} else {
+			final = append(final, arg)
+		}
+	}
+	return final
 }
