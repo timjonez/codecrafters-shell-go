@@ -53,7 +53,11 @@ func main() {
 			}
 		case "cd":
 			cmd := commands[1]
-			if err := os.Chdir(cmd); err != nil {
+			final := cmd
+			if strings.Contains(final, "~") {
+				final = strings.ReplaceAll(final, "~", os.Getenv("HOME"))
+			}
+			if err := os.Chdir(final); err != nil {
 				fmt.Println("cd: " + cmd + ": No such file or directory")
 			}
 		default:
