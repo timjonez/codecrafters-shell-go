@@ -51,6 +51,11 @@ func main() {
 			} else {
 				fmt.Println(cmd + ": not found")
 			}
+		case "cd":
+			cmd := commands[1]
+			if err := os.Chdir(cmd); err != nil {
+				fmt.Println("cd: " + cmd + ": No such file or directory")
+			}
 		default:
 			execFile(commands)
 		}
