@@ -43,17 +43,17 @@ func main() {
 		case "pwd":
 			out, err := os.Getwd()
 			if err != nil {
-				fmt.Println("pwd: not found")
+				fmt.Fprint(os.Stderr, "pwd: not found")
 			}
 			fmt.Println(out)
 		case "type":
 			cmd := commands[1]
 			if slices.Contains([]string{"exit", "echo", "type", "pwd"}, cmd) {
-				fmt.Println(cmd + " is a shell builtin")
+				fmt.Fprint(os.Stdout, cmd+" is a shell builtin")
 			} else if handleTypeCommand(commands[1:]) {
 				continue
 			} else {
-				fmt.Println(cmd + ": not found")
+				fmt.Fprint(os.Stderr, cmd+": not found")
 			}
 		case "cd":
 			cmd := commands[1]
@@ -62,7 +62,7 @@ func main() {
 				final = strings.ReplaceAll(final, "~", os.Getenv("HOME"))
 			}
 			if err := os.Chdir(final); err != nil {
-				fmt.Println("cd: " + cmd + ": No such file or directory")
+				fmt.Fprint(os.Stderr, "cd: "+cmd+": No such file or directory")
 			}
 		default:
 			execFile(commands)
@@ -95,14 +95,14 @@ func execFile(args []string) error {
 	cmd := args[0]
 	file := findFileOnPath(cmd)
 	if file == "" {
-		fmt.Println(cmd + ": command not found")
+		fmt.Fprint(os.Stderr, cmd+": command not found")
 	}
 	command := exec.Command(file, args[1:]...)
 	output, err := command.CombinedOutput()
 	if err != nil {
 		return err
 	}
-	fmt.Print(string(output))
+	fmt.Fprint(os.Stdout, string(output))
 	return nil
 }
 
