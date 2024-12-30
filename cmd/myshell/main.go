@@ -145,8 +145,12 @@ func processInput(message string) []string {
 					escaped = true
 				}
 			default:
-				escaped = false
-				current = current + string(char)
+				if escaped {
+					current = current + "\\" + string(char)
+					escaped = false
+				} else {
+					current = current + string(char)
+				}
 			}
 		default:
 			switch char {
@@ -182,6 +186,5 @@ func processInput(message string) []string {
 	if current != "" {
 		result = append(result, current)
 	}
-	fmt.Println(">>>", result)
 	return result
 }
