@@ -182,5 +182,6 @@ func processInput(message string) []string {
 	if current != "" {
 		result = append(result, current)
 	}
+	fmt.Println(">>>", result)
 	return result
 }
