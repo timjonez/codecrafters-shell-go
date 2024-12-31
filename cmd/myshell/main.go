@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
@@ -13,19 +14,108 @@ import (
 const SuccessCode = 0
 const ErrCode = 1
 
+type Mode string
+
+const (
+	Truncate Mode = ">"
+	Append   Mode = ">>"
+)
+
+type FileDescriptor int
+
+const (
+	StdOut FileDescriptor = 1
+	StdErr FileDescriptor = 2
+)
+
+type Redirect struct {
+	Descriptor FileDescriptor
+	Mode       Mode
+}
+
+type Input struct {
+	Commands []string
+	Redirect Redirect
+	File     string
+}
+
+func (i *Input) HandleOut(stdout, stderr []byte) {
+	if i.Redirect != (Redirect{}) {
+		var flag int
+		if i.Redirect.Mode == Append {
+			flag = os.O_WRONLY | os.O_CREATE | os.O_APPEND
+		} else {
+			flag = os.O_WRONLY | os.O_CREATE | os.O_TRUNC
+		}
+
+		file := strings.TrimSpace(i.File)
+		f, err := os.OpenFile(file, flag, 0644)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error opening file: %v\n", err)
+			return
+		}
+		defer f.Close()
+
+		if i.Redirect.Descriptor == StdOut {
+			if _, err := f.Write(stdout); err != nil {
+				fmt.Fprintf(os.Stderr, "Error writing to file: %v\n", err)
+			}
+		} else if i.Redirect.Descriptor == StdErr {
+			if _, err := f.Write(stderr); err != nil {
+				fmt.Fprintf(os.Stderr, "Error writing to file: %v\n", err)
+			}
+		}
+	} else {
+		if len(stdout) > 0 {
+			fmt.Fprint(os.Stdout, string(stdout))
+		}
+		if len(stderr) > 0 {
+			fmt.Fprint(os.Stderr, string(stderr))
+		}
+	}
+}
+
+func intoInput(message string) Input {
+	file := ""
+	redirect := Redirect{}
+	if strings.Contains(message, ">>") {
+		redirect = Redirect{Descriptor: StdOut, Mode: Append}
+		message, file = splitInput(message, ">>")
+	} else if strings.Contains(message, "1>") {
+		redirect = Redirect{Descriptor: StdOut, Mode: Truncate}
+		message, file = splitInput(message, "1>")
+	} else if strings.Contains(message, ">") {
+		redirect = Redirect{Descriptor: StdOut, Mode: Truncate}
+		message, file = splitInput(message, ">")
+	}
+	commands := processCommands(message)
+
+	return Input{
+		Commands: commands,
+		Redirect: redirect,
+		File:     file,
+	}
+}
+
+func splitInput(message, subStr string) (string, string) {
+	parts := strings.Split(message, subStr)
+	return parts[0], parts[1]
+}
+
 func main() {
 	for {
 		fmt.Fprint(os.Stdout, "$ ")
 
 		// Wait for user input
-		input, err := bufio.NewReader(os.Stdin).ReadString('\n')
+		rawInput, err := bufio.NewReader(os.Stdin).ReadString('\n')
 		if err != nil {
 			fmt.Fprint(os.Stderr, "Error reading input:", err)
 			os.Exit(1)
 		}
 
-		input = strings.TrimSpace(input)
-		commands := processInput(input)
+		rawInput = strings.TrimSpace(rawInput)
+		input := intoInput(rawInput)
+		commands := input.Commands
 
 		switch commands[0] {
 		case "exit":
@@ -39,7 +129,7 @@ func main() {
 			os.Exit(code)
 		case "echo":
 			cmd := strings.Join(commands[1:], " ")
-			fmt.Println(cmd)
+			input.HandleOut([]byte(cmd), []byte{})
 		case "pwd":
 			out, err := os.Getwd()
 			if err != nil {
@@ -65,7 +155,11 @@ func main() {
 				fmt.Fprint(os.Stderr, "cd: "+cmd+": No such file or directory")
 			}
 		default:
-			execFile(commands)
+			stdout, stderr, err := execFile(commands)
+			if err != nil {
+				fmt.Fprint(os.Stderr, "Error executing command")
+			}
+			input.HandleOut(stdout, stderr)
 		}
 	}
 }
@@ -91,19 +185,24 @@ func handleTypeCommand(args []string) bool {
 	return false
 }
 
-func execFile(args []string) error {
+func execFile(args []string) ([]byte, []byte, error) {
 	cmd := args[0]
 	file := findFileOnPath(cmd)
 	if file == "" {
-		fmt.Fprint(os.Stderr, cmd+": command not found")
+		fmt.Fprint(os.Stderr, cmd+": command not found\n")
 	}
 	command := exec.Command(file, args[1:]...)
-	output, err := command.CombinedOutput()
+
+	var stdout, stderr bytes.Buffer
+	command.Stdout = &stdout
+	command.Stderr = &stderr
+
+	err := command.Run()
 	if err != nil {
-		return err
+		return stdout.Bytes(), stderr.Bytes(), err
 	}
-	fmt.Fprint(os.Stdout, string(output))
-	return nil
+
+	return stdout.Bytes(), stderr.Bytes(), nil
 }
 
 type InputType int
@@ -114,7 +213,7 @@ const (
 	DoubleQuote
 )
 
-func processInput(message string) []string {
+func processCommands(message string) []string {
 	result := []string{}
 	current := ""
 	inputState := Normal
