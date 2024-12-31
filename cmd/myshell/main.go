@@ -56,24 +56,28 @@ func (i *Input) HandleOut(stdout, stderr []byte) {
 		}
 		defer f.Close()
 
+		if !bytes.HasSuffix(stdout, []byte("\n")) {
+			stdout = append(stdout, '\n')
+		}
+
+		if !bytes.HasSuffix(stderr, []byte("\n")) {
+			stderr = append(stderr, []byte("\n")...)
+		}
+
 		if i.Redirect.Descriptor == StdOut {
 			if _, err := f.Write(stdout); err != nil {
-				stdout = append(stdout, []byte("\n")...)
 				fmt.Fprintf(os.Stderr, "Error writing to file: %v\n", err)
 			}
 		} else if i.Redirect.Descriptor == StdErr {
 			if _, err := f.Write(stderr); err != nil {
-				stderr = append(stderr, []byte("\n")...)
 				fmt.Fprintf(os.Stderr, "Error writing to file: %v\n", err)
 			}
 		}
 	} else {
 		if len(stdout) > 0 {
-			stdout = append(stdout, []byte("\n")...)
 			fmt.Fprint(os.Stdout, string(stdout))
 		}
 		if len(stderr) > 0 {
-			stderr = append(stderr, []byte("\n")...)
 			fmt.Fprint(os.Stderr, string(stderr))
 		}
 	}
