@@ -58,10 +58,12 @@ func (i *Input) HandleOut(stdout, stderr []byte) {
 
 		if i.Redirect.Descriptor == StdOut {
 			if _, err := f.Write(stdout); err != nil {
+				stdout = append(stdout, []byte("\n")...)
 				fmt.Fprintf(os.Stderr, "Error writing to file: %v\n", err)
 			}
 		} else if i.Redirect.Descriptor == StdErr {
 			if _, err := f.Write(stderr); err != nil {
+				stderr = append(stderr, []byte("\n")...)
 				fmt.Fprintf(os.Stderr, "Error writing to file: %v\n", err)
 			}
 		}
