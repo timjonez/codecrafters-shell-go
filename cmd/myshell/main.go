@@ -40,11 +40,11 @@ type Input struct {
 }
 
 func (i *Input) HandleOut(stdout, stderr []byte) {
-	if !bytes.HasSuffix(stdout, []byte("\n")) {
+	if len(stdout) > 0 && !bytes.HasSuffix(stdout, []byte("\n")) {
 		stdout = append(stdout, '\n')
 	}
 
-	if !bytes.HasSuffix(stderr, []byte("\n")) {
+	if len(stderr) > 0 && !bytes.HasSuffix(stderr, []byte("\n")) {
 		stderr = append(stderr, []byte("\n")...)
 	}
 
