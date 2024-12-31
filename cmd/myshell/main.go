@@ -69,9 +69,11 @@ func (i *Input) HandleOut(stdout, stderr []byte) {
 		}
 	} else {
 		if len(stdout) > 0 {
+			stdout = append(stdout, []byte("\n")...)
 			fmt.Fprint(os.Stdout, string(stdout))
 		}
 		if len(stderr) > 0 {
+			stderr = append(stderr, []byte("\n")...)
 			fmt.Fprint(os.Stderr, string(stderr))
 		}
 	}
