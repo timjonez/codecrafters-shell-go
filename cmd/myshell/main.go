@@ -40,6 +40,14 @@ type Input struct {
 }
 
 func (i *Input) HandleOut(stdout, stderr []byte) {
+	if !bytes.HasSuffix(stdout, []byte("\n")) {
+		stdout = append(stdout, '\n')
+	}
+
+	if !bytes.HasSuffix(stderr, []byte("\n")) {
+		stderr = append(stderr, []byte("\n")...)
+	}
+
 	if i.Redirect != (Redirect{}) {
 		var flag int
 		if i.Redirect.Mode == Append {
@@ -56,29 +64,21 @@ func (i *Input) HandleOut(stdout, stderr []byte) {
 		}
 		defer f.Close()
 
-		if !bytes.HasSuffix(stdout, []byte("\n")) {
-			stdout = append(stdout, '\n')
-		}
-
-		if !bytes.HasSuffix(stderr, []byte("\n")) {
-			stderr = append(stderr, []byte("\n")...)
-		}
-
-		if i.Redirect.Descriptor == StdOut {
-			if _, err := f.Write(stdout); err != nil {
+		if i.Redirect.Descriptor == StdErr {
+			if _, err := f.Write(stderr); err != nil {
 				fmt.Fprintf(os.Stderr, "Error writing to file: %v\n", err)
 			}
-		} else if i.Redirect.Descriptor == StdErr {
-			if _, err := f.Write(stderr); err != nil {
+		} else if i.Redirect.Descriptor == StdOut {
+			if _, err := f.Write(stdout); err != nil {
 				fmt.Fprintf(os.Stderr, "Error writing to file: %v\n", err)
 			}
 		}
 	} else {
-		if len(stdout) > 0 {
-			fmt.Fprint(os.Stdout, string(stdout))
-		}
 		if len(stderr) > 0 {
 			fmt.Fprint(os.Stderr, string(stderr))
+		}
+		if len(stdout) > 0 {
+			fmt.Fprint(os.Stdout, string(stdout))
 		}
 	}
 }
@@ -117,7 +117,7 @@ func main() {
 		// Wait for user input
 		rawInput, err := bufio.NewReader(os.Stdin).ReadString('\n')
 		if err != nil {
-			fmt.Fprint(os.Stderr, "Error reading input:", err)
+			fmt.Fprint(os.Stderr, "Error reading input:", err, "\n")
 			os.Exit(1)
 		}
 
@@ -141,13 +141,13 @@ func main() {
 		case "pwd":
 			out, err := os.Getwd()
 			if err != nil {
-				fmt.Fprint(os.Stderr, "pwd: not found")
+				fmt.Fprint(os.Stderr, "pwd: not found", "\n")
 			}
 			fmt.Println(out)
 		case "type":
 			cmd := commands[1]
 			if slices.Contains([]string{"exit", "echo", "type", "pwd"}, cmd) {
-				fmt.Fprint(os.Stdout, cmd+" is a shell builtin")
+				fmt.Fprint(os.Stdout, cmd+" is a shell builtin", "\n")
 			} else if handleTypeCommand(commands[1:]) {
 				continue
 			} else {
@@ -160,12 +160,12 @@ func main() {
 				final = strings.ReplaceAll(final, "~", os.Getenv("HOME"))
 			}
 			if err := os.Chdir(final); err != nil {
-				fmt.Fprint(os.Stderr, "cd: "+cmd+": No such file or directory")
+				fmt.Fprint(os.Stderr, "cd: "+cmd+": No such file or directory", "\n")
 			}
 		default:
 			stdout, stderr, err := execFile(commands)
 			if err != nil {
-				fmt.Fprint(os.Stderr, "Error executing command")
+				fmt.Fprint(os.Stderr, "Error executing command", "\n")
 			}
 			input.HandleOut(stdout, stderr)
 		}
@@ -207,7 +207,7 @@ func execFile(args []string) ([]byte, []byte, error) {
 
 	err := command.Run()
 	if err != nil {
-		return stdout.Bytes(), stderr.Bytes(), err
+		return stdout.Bytes(), stderr.Bytes(), nil
 	}
 
 	return stdout.Bytes(), stderr.Bytes(), nil
