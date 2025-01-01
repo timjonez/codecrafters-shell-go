@@ -72,6 +72,7 @@ func (i *Input) HandleOut(stdout, stderr []byte) {
 			if _, err := f.Write(stdout); err != nil {
 				fmt.Fprintf(os.Stderr, "Error writing to file: %v\n", err)
 			}
+			fmt.Fprint(os.Stderr, string(stderr))
 		}
 	} else {
 		if len(stderr) > 0 {
