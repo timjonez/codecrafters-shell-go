@@ -152,7 +152,7 @@ func main() {
 			} else if handleTypeCommand(commands[1:]) {
 				continue
 			} else {
-				fmt.Fprint(os.Stderr, cmd+": not found")
+				fmt.Fprint(os.Stderr, cmd+": not found\n")
 			}
 		case "cd":
 			cmd := commands[1]
