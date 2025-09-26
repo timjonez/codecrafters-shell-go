@@ -173,12 +173,21 @@ func main() {
 	}
 }
 
+func isExecutable(path string) bool {
+	info, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+	// Check if any executable bit is set (user, group, or others)
+	return info.Mode()&0111 != 0
+}
+
 func findFileOnPath(name string) string {
 	dirs := strings.Split(os.Getenv("PATH"), ":")
 	for _, dir := range dirs {
+		//fmt.Println(">>>>", dir)
 		file_path := dir + "/" + name
-		_, err := os.Stat(file_path)
-		if err == nil {
+		if isExecutable(file_path) {
 			return file_path
 		}
 	}
@@ -198,10 +207,16 @@ func execFile(args []string) ([]byte, []byte, error) {
 	cmd := args[0]
 	file := findFileOnPath(cmd)
 	if file == "" {
-		fmt.Fprint(os.Stderr, cmd+": command not found\n")
+		_, err := os.Stat(cmd)
+		if err != nil {
+			fmt.Fprint(os.Stderr, cmd+": command not found\n")
+		}
+		file = cmd
 	}
-	command := exec.Command(file, args[1:]...)
 
+	command := exec.Command(file, args[1:]...)
+	command.Args[0] = cmd
+	// command := exec.Command(file, args[1:]...)
 	var stdout, stderr bytes.Buffer
 	command.Stdout = &stdout
 	command.Stderr = &stderr
