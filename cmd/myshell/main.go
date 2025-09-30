@@ -93,7 +93,10 @@ func intoInput(message string) Input {
 	} else if strings.Contains(message, "1>") {
 		redirect = Redirect{Descriptor: StdOut, Mode: Truncate}
 		message, file = splitInput(message, "1>")
-	} else if strings.Contains(message, ">") {
+	} else if strings.Contains(message, "2>") {
+    redirect = Redirect{Descriptor: StdErr, Mode: Truncate}
+    message, file = splitInput(message, "2>")
+  }else if strings.Contains(message, ">") {
 		redirect = Redirect{Descriptor: StdOut, Mode: Truncate}
 		message, file = splitInput(message, ">")
 	}
