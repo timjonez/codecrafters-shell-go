@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"os"
@@ -9,6 +8,8 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+
+	"github.com/chzyer/readline"
 )
 
 const SuccessCode = 0
@@ -101,9 +102,9 @@ func intoInput(message string) Input {
 		redirect = Redirect{Descriptor: StdOut, Mode: Truncate}
 		message, file = splitInput(message, "1>")
 	} else if strings.Contains(message, "2>") {
-    redirect = Redirect{Descriptor: StdErr, Mode: Truncate}
-    message, file = splitInput(message, "2>")
-  }else if strings.Contains(message, ">") {
+		redirect = Redirect{Descriptor: StdErr, Mode: Truncate}
+		message, file = splitInput(message, "2>")
+	} else if strings.Contains(message, ">") {
 		redirect = Redirect{Descriptor: StdOut, Mode: Truncate}
 		message, file = splitInput(message, ">")
 	}
@@ -121,18 +122,29 @@ func splitInput(message, subStr string) (string, string) {
 	return parts[0], parts[1]
 }
 
-func main() {
-	for {
-		fmt.Fprint(os.Stdout, "$ ")
+var completer = readline.NewPrefixCompleter(
+	readline.PcItem("echo"),
+	readline.PcItem("exit"),
+)
 
-		// Wait for user input
-		rawInput, err := bufio.NewReader(os.Stdin).ReadString('\n')
+func main() {
+	rl, err := readline.NewEx(&readline.Config{
+		Prompt:       "$ ",
+		AutoComplete: completer,
+	})
+	if err != nil {
+		os.Exit(1)
+	}
+	defer rl.Close()
+
+	for {
+		line, err := rl.Readline()
 		if err != nil {
 			fmt.Fprint(os.Stderr, "Error reading input:", err, "\n")
 			os.Exit(1)
 		}
 
-		rawInput = strings.TrimSpace(rawInput)
+		rawInput := strings.TrimSpace(line)
 		input := intoInput(rawInput)
 		commands := input.Commands
 
