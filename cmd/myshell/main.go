@@ -88,7 +88,13 @@ func (i *Input) HandleOut(stdout, stderr []byte) {
 func intoInput(message string) Input {
 	file := ""
 	redirect := Redirect{}
-	if strings.Contains(message, ">>") {
+	if strings.Contains(message, "1>>") {
+		redirect = Redirect{Descriptor: StdOut, Mode: Append}
+		message, file = splitInput(message, "1>>")
+	} else if strings.Contains(message, "2>>") {
+		redirect = Redirect{Descriptor: StdErr, Mode: Append}
+		message, file = splitInput(message, "2>>")
+	} else if strings.Contains(message, ">>") {
 		redirect = Redirect{Descriptor: StdOut, Mode: Append}
 		message, file = splitInput(message, ">>")
 	} else if strings.Contains(message, "1>") {
