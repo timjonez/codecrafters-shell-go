@@ -127,10 +127,18 @@ var completer = readline.NewPrefixCompleter(
 	readline.PcItem("exit"),
 )
 
+var listener = readline.FuncListener(func(line []rune, pos int, key rune) ([]rune, int, bool) {
+	if key == readline.CharTab {
+		fmt.Print("\x07")
+	}
+	return line, pos, true
+})
+
 func main() {
 	rl, err := readline.NewEx(&readline.Config{
 		Prompt:       "$ ",
 		AutoComplete: completer,
+		Listener:     listener,
 	})
 	if err != nil {
 		os.Exit(1)
