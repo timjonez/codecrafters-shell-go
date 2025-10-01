@@ -122,28 +122,38 @@ func splitInput(message, subStr string) (string, string) {
 	return parts[0], parts[1]
 }
 
+type CustomCompleter struct {
+	Completer readline.AutoCompleter
+	Terminal  *readline.Terminal
+}
+
+func (c *CustomCompleter) Do(line []rune, pos int) ([][]rune, int) {
+	newline, length := c.Completer.Do(line, pos)
+	if len(newline) == 0 {
+		c.Terminal.Bell()
+	}
+	return newline, length
+}
+
 var completer = readline.NewPrefixCompleter(
 	readline.PcItem("echo"),
 	readline.PcItem("exit"),
 )
 
-var listener = readline.FuncListener(func(line []rune, pos int, key rune) ([]rune, int, bool) {
-	if key == readline.CharTab {
-		fmt.Print("\x07")
-	}
-	return line, pos, true
-})
-
 func main() {
-	rl, err := readline.NewEx(&readline.Config{
-		Prompt:       "$ ",
-		AutoComplete: completer,
-		Listener:     listener,
-	})
+	config := readline.Config{
+		Prompt: "$ ",
+		AutoComplete: &CustomCompleter{
+			Completer: completer,
+		},
+	}
+	rl, err := readline.NewEx(&config)
 	if err != nil {
 		os.Exit(1)
 	}
 	defer rl.Close()
+
+	config.AutoComplete.(*CustomCompleter).Terminal = rl.Terminal
 
 	for {
 		line, err := rl.Readline()
