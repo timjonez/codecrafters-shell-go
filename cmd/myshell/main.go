@@ -146,7 +146,7 @@ func (c *CustomCompleter) Do(line []rune, pos int) ([][]rune, int) {
 			}
 			if strings.Contains(file.Name(), string(line)) {
 				completion := strings.Replace(file.Name(), string(line), "", 1)
-				newline = append(newline, []rune(completion))
+				newline = append(newline, []rune(fmt.Sprintf("%s ", completion)))
 			}
 		}
 	}
