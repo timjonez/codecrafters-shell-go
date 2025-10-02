@@ -129,6 +129,27 @@ type CustomCompleter struct {
 
 func (c *CustomCompleter) Do(line []rune, pos int) ([][]rune, int) {
 	newline, length := c.Completer.Do(line, pos)
+	dirs := strings.Split(os.Getenv("PATH"), ":")
+	for _, dir := range dirs {
+		files, err := os.ReadDir(dir)
+		if err != nil {
+			continue
+		}
+		for _, file := range files {
+			info, err := os.Stat(fmt.Sprintf("%s/%s", dir, file.Name()))
+			if err != nil {
+				continue
+			}
+
+			if !file.IsDir() && info.Mode()&0111 == 0 {
+				continue
+			}
+			if strings.Contains(file.Name(), string(line)) {
+				completion := strings.Replace(file.Name(), string(line), "", 1)
+				newline = append(newline, []rune(completion))
+			}
+		}
+	}
 	if len(newline) == 0 {
 		c.Terminal.Bell()
 	}
@@ -225,7 +246,6 @@ func isExecutable(path string) bool {
 func findFileOnPath(name string) string {
 	dirs := strings.Split(os.Getenv("PATH"), ":")
 	for _, dir := range dirs {
-		//fmt.Println(">>>>", dir)
 		file_path := dir + "/" + name
 		if isExecutable(file_path) {
 			return file_path
