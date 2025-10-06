@@ -125,10 +125,15 @@ func splitInput(message, subStr string) (string, string) {
 type CustomCompleter struct {
 	Completer readline.AutoCompleter
 	Terminal  *readline.Terminal
+	Log       *Log
 }
 
 func (c *CustomCompleter) Do(line []rune, pos int) ([][]rune, int) {
 	newline, length := c.Completer.Do(line, pos)
+	if len(newline) == 0 && c.Log.LastKey != '\t' {
+		c.Terminal.Bell()
+		return newline, length
+	}
 	dirs := strings.Split(os.Getenv("PATH"), ":")
 	for _, dir := range dirs {
 		files, err := os.ReadDir(dir)
@@ -156,17 +161,31 @@ func (c *CustomCompleter) Do(line []rune, pos int) ([][]rune, int) {
 	return newline, length
 }
 
+type Log struct {
+	Current rune
+	LastKey rune
+}
+
+func (l *Log) LogInput(key rune) (rune, bool) {
+	l.LastKey = l.Current
+	l.Current = key
+	return key, true
+}
+
 var completer = readline.NewPrefixCompleter(
 	readline.PcItem("echo"),
 	readline.PcItem("exit"),
 )
 
 func main() {
+	log := Log{}
 	config := readline.Config{
 		Prompt: "$ ",
 		AutoComplete: &CustomCompleter{
 			Completer: completer,
+			Log:       &log,
 		},
+		FuncFilterInputRune: log.LogInput,
 	}
 	rl, err := readline.NewEx(&config)
 	if err != nil {
