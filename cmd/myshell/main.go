@@ -128,6 +128,12 @@ type CustomCompleter struct {
 	Log       *Log
 }
 
+// https://pkg.go.dev/github.com/chzyer/readline#PrefixCompleterInterface
+func (c *CustomCompleter) Print(prefix string, level int, buf *bytes.Buffer) {
+  fmt.Println("--------->", prefix)
+  buf.WriteString("Hello world")
+}
+
 func (c *CustomCompleter) Do(line []rune, pos int) ([][]rune, int) {
 	newline, length := c.Completer.Do(line, pos)
 	if len(newline) == 0 && c.Log.LastKey != '\t' {
