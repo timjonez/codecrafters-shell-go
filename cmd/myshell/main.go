@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"slices"
@@ -178,6 +179,25 @@ func (l *Log) LogInput(key rune) (rune, bool) {
 	return key, true
 }
 
+type CustomWriter struct {
+	writer io.Writer
+}
+
+func (w *CustomWriter) Write(p []byte) (n int, err error) {
+	if strings.Contains(string(p), "\n") { // Detect completion output
+		res := []string{"\n"}
+		cmds := strings.Split(string(p), " ")
+		for _, cmd := range cmds {
+			if cmd == " " {
+				continue
+			}
+			res = append(res, strings.TrimSpace(cmd))
+		}
+		return w.writer.Write([]byte(strings.Join(res, "  ")))
+	}
+	return w.writer.Write(p)
+}
+
 var completer = readline.NewPrefixCompleter(
 	readline.PcItem("echo"),
 	readline.PcItem("exit"),
@@ -185,6 +205,9 @@ var completer = readline.NewPrefixCompleter(
 
 func main() {
 	log := Log{}
+
+	customWriter := &CustomWriter{writer: readline.Stdout}
+
 	config := readline.Config{
 		Prompt: "$ ",
 		AutoComplete: &CustomCompleter{
@@ -192,6 +215,7 @@ func main() {
 			Log:       &log,
 		},
 		FuncFilterInputRune: log.LogInput,
+		Stdout:              customWriter,
 	}
 	rl, err := readline.NewEx(&config)
 	if err != nil {
