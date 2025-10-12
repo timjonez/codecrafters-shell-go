@@ -136,7 +136,11 @@ func (c *CustomCompleter) Print(prefix string, level int, buf *bytes.Buffer) {
 }
 
 func (c *CustomCompleter) Do(line []rune, pos int) ([][]rune, int) {
-	newline, length := c.Completer.Do(line, pos)
+	if c.Log.LastKey != '\t' {
+    c.Terminal.Bell()
+    return [][]rune{}, 0
+  }
+  newline, length := c.Completer.Do(line, pos)
 	if len(newline) == 0 && c.Log.LastKey != '\t' {
 		c.Terminal.Bell()
 		return newline, length
@@ -147,6 +151,7 @@ func (c *CustomCompleter) Do(line []rune, pos int) ([][]rune, int) {
 		if err != nil {
 			continue
 		}
+    fileLoop:
 		for _, file := range files {
 			info, err := os.Stat(fmt.Sprintf("%s/%s", dir, file.Name()))
 			if err != nil {
@@ -157,7 +162,16 @@ func (c *CustomCompleter) Do(line []rune, pos int) ([][]rune, int) {
 				continue
 			}
 			if strings.Contains(file.Name(), string(line)) {
-				completion := strings.Replace(file.Name(), string(line), "", 1)
+				completion := file.Name()
+        if len(newline) > 0 && completion +" " == string(newline[len(newline)-1]) {
+          continue
+        }
+        for line := range newline {
+          strLine := string(line)
+          if completion + " " == strLine {
+            continue fileLoop
+          }
+        }
 				newline = append(newline, []rune(fmt.Sprintf("%s ", completion)))
 			}
 		}
@@ -186,14 +200,20 @@ type CustomWriter struct {
 func (w *CustomWriter) Write(p []byte) (n int, err error) {
 	if strings.Contains(string(p), "\n") { // Detect completion output
 		res := []string{"\n"}
-		cmds := strings.Split(string(p), " ")
-		for _, cmd := range cmds {
-			if cmd == " " {
-				continue
-			}
-			res = append(res, strings.TrimSpace(cmd))
-		}
-		return w.writer.Write([]byte(strings.Join(res, "  ")))
+		cmds := strings.Fields(string(p))
+    cmdMap := make(map[string]string)
+
+    resStr := ""
+    for _, cmd := range cmds {
+      resStr = fmt.Sprintf("%s  %s", resStr, cmd)
+      res = append(res, cmd)
+    }
+    resStr = strings.TrimSpace(resStr)
+    resStr = fmt.Sprintf("\n%s\n", resStr)
+    res = append(res, "\n")
+
+    num, err := w.writer.Write([]byte(resStr))
+    return num, err
 	}
 	return w.writer.Write(p)
 }
