@@ -162,7 +162,7 @@ func (c *CustomCompleter) Do(line []rune, pos int) ([][]rune, int) {
 				continue
 			}
 			if strings.Contains(file.Name(), string(line)) {
-				completion := file.Name()
+				completion := strings.Replace(file.Name(), string(line), "", 1)
         if len(newline) > 0 && completion +" " == string(newline[len(newline)-1]) {
           continue
         }
