@@ -201,7 +201,6 @@ func (w *CustomWriter) Write(p []byte) (n int, err error) {
 	if strings.Contains(string(p), "\n") { // Detect completion output
 		res := []string{"\n"}
 		cmds := strings.Fields(string(p))
-    cmdMap := make(map[string]string)
 
     resStr := ""
     for _, cmd := range cmds {
