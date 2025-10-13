@@ -139,6 +139,9 @@ func (c *CustomCompleter) Do(line []rune, pos int) ([][]rune, int) {
 		c.Terminal.Bell()
 		return newline, length
 	}
+
+	// Collect unique completions from PATH
+	completions := make(map[string]bool)
 	dirs := strings.Split(os.Getenv("PATH"), ":")
 	for _, dir := range dirs {
 		files, err := os.ReadDir(dir)
@@ -155,13 +158,29 @@ func (c *CustomCompleter) Do(line []rune, pos int) ([][]rune, int) {
 				continue
 			}
 			if strings.HasPrefix(file.Name(), string(line)) {
-				completion := file.Name()
-				newline = append(newline, []rune(fmt.Sprintf("%s ", completion)))
+				completions[file.Name()] = true
 			}
 		}
 	}
+
+	// Convert to sorted slice
+	var sortedCompletions []string
+	for completion := range completions {
+		sortedCompletions = append(sortedCompletions, completion)
+	}
+	slices.Sort(sortedCompletions)
+
+	// Convert to the expected format
+	for _, completion := range sortedCompletions {
+		newline = append(newline, []rune(fmt.Sprintf("%s ", completion)))
+	}
+
 	if len(newline) == 0 {
 		c.Terminal.Bell()
+		return newline, length
+	}
+
+	if len(newline) == 1 {
 		return newline, length
 	}
 
