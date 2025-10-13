@@ -132,6 +132,10 @@ type CustomCompleter struct {
 func (c *CustomCompleter) Do(line []rune, pos int) ([][]rune, int) {
 	newline, length := c.Completer.Do(line, pos)
 
+	if len(newline) == 1 {
+		return newline, length
+	}
+
 	// Collect unique completions from PATH
 	completions := make(map[string]bool)
 	dirs := strings.Split(os.Getenv("PATH"), ":")
