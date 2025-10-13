@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"slices"
@@ -127,20 +126,15 @@ type CustomCompleter struct {
 	Completer readline.AutoCompleter
 	Terminal  *readline.Terminal
 	Log       *Log
-}
-
-// https://pkg.go.dev/github.com/chzyer/readline#PrefixCompleterInterface
-func (c *CustomCompleter) Print(prefix string, level int, buf *bytes.Buffer) {
-  fmt.Println("--------->", prefix)
-  buf.WriteString("Hello world")
+	Instance  *readline.Instance
 }
 
 func (c *CustomCompleter) Do(line []rune, pos int) ([][]rune, int) {
 	if c.Log.LastKey != '\t' {
-    c.Terminal.Bell()
-    return [][]rune{}, 0
-  }
-  newline, length := c.Completer.Do(line, pos)
+		c.Terminal.Bell()
+		return [][]rune{}, 0
+	}
+	newline, length := c.Completer.Do(line, pos)
 	if len(newline) == 0 && c.Log.LastKey != '\t' {
 		c.Terminal.Bell()
 		return newline, length
@@ -151,7 +145,7 @@ func (c *CustomCompleter) Do(line []rune, pos int) ([][]rune, int) {
 		if err != nil {
 			continue
 		}
-    fileLoop:
+	fileLoop:
 		for _, file := range files {
 			info, err := os.Stat(fmt.Sprintf("%s/%s", dir, file.Name()))
 			if err != nil {
@@ -161,25 +155,43 @@ func (c *CustomCompleter) Do(line []rune, pos int) ([][]rune, int) {
 			if !file.IsDir() && info.Mode()&0111 == 0 {
 				continue
 			}
-			if strings.Contains(file.Name(), string(line)) {
-				completion := strings.Replace(file.Name(), string(line), "", 1)
-        if len(newline) > 0 && completion +" " == string(newline[len(newline)-1]) {
-          continue
-        }
-        for line := range newline {
-          strLine := string(line)
-          if completion + " " == strLine {
-            continue fileLoop
-          }
-        }
+			if strings.HasPrefix(file.Name(), string(line)) {
+				completion := file.Name()
+				if len(newline) > 0 && completion+" " == string(newline[len(newline)-1]) {
+					continue
+				}
+				for line := range newline {
+					strLine := string(line)
+					if completion+" " == strLine {
+						continue fileLoop
+					}
+				}
 				newline = append(newline, []rune(fmt.Sprintf("%s ", completion)))
 			}
 		}
 	}
 	if len(newline) == 0 {
 		c.Terminal.Bell()
+		return newline, length
 	}
-	return newline, length
+
+	if len(newline) > 1 {
+		fmt.Fprint(os.Stdout, "\n")
+		for i, completion := range newline {
+			if i > 0 {
+				fmt.Fprint(os.Stdout, "  ")
+			}
+			fmt.Fprint(os.Stdout, string(completion))
+		}
+		fmt.Fprint(os.Stdout, "\n")
+
+		// Refresh readline to redraw the prompt
+		if c.Instance != nil {
+			c.Instance.Refresh()
+		}
+	}
+
+	return [][]rune{}, length
 }
 
 type Log struct {
@@ -193,30 +205,6 @@ func (l *Log) LogInput(key rune) (rune, bool) {
 	return key, true
 }
 
-type CustomWriter struct {
-	writer io.Writer
-}
-
-func (w *CustomWriter) Write(p []byte) (n int, err error) {
-	if strings.Contains(string(p), "\n") { // Detect completion output
-		res := []string{"\n"}
-		cmds := strings.Fields(string(p))
-
-    resStr := ""
-    for _, cmd := range cmds {
-      resStr = fmt.Sprintf("%s  %s", resStr, cmd)
-      res = append(res, cmd)
-    }
-    resStr = strings.TrimSpace(resStr)
-    resStr = fmt.Sprintf("\n%s\n", resStr)
-    res = append(res, "\n")
-
-    num, err := w.writer.Write([]byte(resStr))
-    return num, err
-	}
-	return w.writer.Write(p)
-}
-
 var completer = readline.NewPrefixCompleter(
 	readline.PcItem("echo"),
 	readline.PcItem("exit"),
@@ -225,8 +213,6 @@ var completer = readline.NewPrefixCompleter(
 func main() {
 	log := Log{}
 
-	customWriter := &CustomWriter{writer: readline.Stdout}
-
 	config := readline.Config{
 		Prompt: "$ ",
 		AutoComplete: &CustomCompleter{
@@ -234,7 +220,6 @@ func main() {
 			Log:       &log,
 		},
 		FuncFilterInputRune: log.LogInput,
-		Stdout:              customWriter,
 	}
 	rl, err := readline.NewEx(&config)
 	if err != nil {
@@ -243,6 +228,7 @@ func main() {
 	defer rl.Close()
 
 	config.AutoComplete.(*CustomCompleter).Terminal = rl.Terminal
+	config.AutoComplete.(*CustomCompleter).Instance = rl
 
 	for {
 		line, err := rl.Readline()
