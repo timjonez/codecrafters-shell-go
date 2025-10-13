@@ -167,6 +167,7 @@ func (c *CustomCompleter) Do(line []rune, pos int) ([][]rune, int) {
 
 	if len(newline) > 1 {
 		fmt.Fprint(os.Stdout, "\n")
+		fmt.Fprint(os.Stdout, dirs)
 		for i, completion := range newline {
 			if i > 0 {
 				fmt.Fprint(os.Stdout, " ")
