@@ -130,15 +130,7 @@ type CustomCompleter struct {
 }
 
 func (c *CustomCompleter) Do(line []rune, pos int) ([][]rune, int) {
-	if c.Log.LastKey != '\t' {
-		c.Terminal.Bell()
-		return [][]rune{}, 0
-	}
 	newline, length := c.Completer.Do(line, pos)
-	if len(newline) == 0 && c.Log.LastKey != '\t' {
-		c.Terminal.Bell()
-		return newline, length
-	}
 
 	// Collect unique completions from PATH
 	completions := make(map[string]bool)
@@ -178,26 +170,26 @@ func (c *CustomCompleter) Do(line []rune, pos int) ([][]rune, int) {
 	if len(newline) == 0 {
 		c.Terminal.Bell()
 		return newline, length
+	} else if len(newline) == 1 {
+		res := strings.ReplaceAll(string(newline[0]), string(line), "")
+		return [][]rune{[]rune(res)}, length
+	} else if c.Log.LastKey != '\t' {
+		c.Terminal.Bell()
+		return [][]rune{}, length
 	}
 
-	if len(newline) == 1 {
-		return newline, length
+	fmt.Fprint(os.Stdout, "\n")
+	for i, completion := range newline {
+		if i > 0 {
+			fmt.Fprint(os.Stdout, " ")
+		}
+		fmt.Fprint(os.Stdout, string(completion))
 	}
+	fmt.Fprint(os.Stdout, "\n")
 
-	if len(newline) > 1 {
-		fmt.Fprint(os.Stdout, "\n")
-		for i, completion := range newline {
-			if i > 0 {
-				fmt.Fprint(os.Stdout, " ")
-			}
-			fmt.Fprint(os.Stdout, string(completion))
-		}
-		fmt.Fprint(os.Stdout, "\n")
-
-		// Refresh readline to redraw the prompt
-		if c.Instance != nil {
-			c.Instance.Refresh()
-		}
+	// Refresh readline to redraw the prompt
+	if c.Instance != nil {
+		c.Instance.Refresh()
 	}
 
 	return [][]rune{}, length
