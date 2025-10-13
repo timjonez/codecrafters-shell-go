@@ -145,7 +145,6 @@ func (c *CustomCompleter) Do(line []rune, pos int) ([][]rune, int) {
 		if err != nil {
 			continue
 		}
-	fileLoop:
 		for _, file := range files {
 			info, err := os.Stat(fmt.Sprintf("%s/%s", dir, file.Name()))
 			if err != nil {
@@ -157,15 +156,6 @@ func (c *CustomCompleter) Do(line []rune, pos int) ([][]rune, int) {
 			}
 			if strings.HasPrefix(file.Name(), string(line)) {
 				completion := file.Name()
-				if len(newline) > 0 && completion+" " == string(newline[len(newline)-1]) {
-					continue
-				}
-				for line := range newline {
-					strLine := string(line)
-					if completion+" " == strLine {
-						continue fileLoop
-					}
-				}
 				newline = append(newline, []rune(fmt.Sprintf("%s ", completion)))
 			}
 		}
@@ -179,7 +169,7 @@ func (c *CustomCompleter) Do(line []rune, pos int) ([][]rune, int) {
 		fmt.Fprint(os.Stdout, "\n")
 		for i, completion := range newline {
 			if i > 0 {
-				fmt.Fprint(os.Stdout, "  ")
+				fmt.Fprint(os.Stdout, " ")
 			}
 			fmt.Fprint(os.Stdout, string(completion))
 		}
